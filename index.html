@@ -11,22 +11,114 @@
     <div class="container">
 
         <div class="todo-app">
-            <h1>todos</h1>
-            <form class="input-area">
-                <input type="text" id="task-input" placeholder="Add a new task..." autocomplete="off" />
-                <button type="button" id="add-task-btn">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
-            </form>
-            <div class="todos-container">
-                <ul id="task-list">
-                    <!-- Tasks will be dynamically added here -->
-                </ul>
-                <img id="note-icon" class="empty-image" width="100px" src="./images/empty.png" alt="empty" >
-            </div>            
+
+            <!-- App header with view toggle -->
+            <div class="app-header">
+                <h1 id="view-title">todos</h1>
+                <div class="view-nav">
+                    <button id="nav-todo" class="nav-btn active" title="To-do list">
+                        <i class="fa-solid fa-list-check"></i>
+                    </button>
+                    <button id="nav-matrix" class="nav-btn" title="Eisenhower Matrix">
+                        <i class="fa-solid fa-border-all"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Todo View -->
+            <div id="todo-view">
+                <form class="input-area">
+                    <input type="text" id="task-input" placeholder="Add a new task..." autocomplete="off" />
+                    <button type="button" id="add-task-btn">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </form>
+                <div class="todos-container">
+                    <ul id="task-list"></ul>
+                    <img id="note-icon" class="empty-image" width="100px" src="./images/empty.png" alt="empty">
+                </div>
+            </div>
+
+            <!-- Matrix View -->
+            <div id="matrix-view">
+                <div class="matrix-grid">
+
+                    <!-- B: Important, Not Urgent (top-left) -->
+                    <div class="quadrant q-b">
+                        <div class="quadrant-header">
+                            <div class="quadrant-info">
+                                <span class="quadrant-key">B</span>
+                                <span class="quadrant-name">Important, Not Urgent</span>
+                            </div>
+                            <button class="quadrant-add-btn" data-quadrant="B" title="Add task">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <ul id="matrix-list-B" class="matrix-task-list"></ul>
+                    </div>
+
+                    <!-- A: Important & Urgent (top-right) -->
+                    <div class="quadrant q-a">
+                        <div class="quadrant-header">
+                            <div class="quadrant-info">
+                                <span class="quadrant-key">A</span>
+                                <span class="quadrant-name">Important & Urgent</span>
+                            </div>
+                            <button class="quadrant-add-btn" data-quadrant="A" title="Add task">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <ul id="matrix-list-A" class="matrix-task-list"></ul>
+                    </div>
+
+                    <!-- D: Not Important, Not Urgent (bottom-left) -->
+                    <div class="quadrant q-d">
+                        <div class="quadrant-header">
+                            <div class="quadrant-info">
+                                <span class="quadrant-key">D</span>
+                                <span class="quadrant-name">Not Important, Not Urgent</span>
+                            </div>
+                            <button class="quadrant-add-btn" data-quadrant="D" title="Add task">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <ul id="matrix-list-D" class="matrix-task-list"></ul>
+                    </div>
+
+                    <!-- C: Urgent, Not Important (bottom-right) -->
+                    <div class="quadrant q-c">
+                        <div class="quadrant-header">
+                            <div class="quadrant-info">
+                                <span class="quadrant-key">C</span>
+                                <span class="quadrant-name">Urgent, Not Important</span>
+                            </div>
+                            <button class="quadrant-add-btn" data-quadrant="C" title="Add task">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <ul id="matrix-list-C" class="matrix-task-list"></ul>
+                    </div>
+
+                </div>
+            </div>
 
         </div>
     </div>
+
+    <!-- Quadrant Add Modal -->
+    <div id="quadrant-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h3 id="modal-title">Add to quadrant</h3>
+            <div class="modal-new-task">
+                <input type="text" id="modal-new-input" placeholder="New task name..." autocomplete="off">
+                <button id="modal-add-new" title="Add new task"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="modal-divider"><span>or pick existing</span></div>
+            <ul id="modal-existing-list" class="modal-existing"></ul>
+            <button id="modal-cancel">Cancel</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

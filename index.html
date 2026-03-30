@@ -22,6 +22,9 @@
                     <button id="nav-matrix" class="nav-btn" title="Eisenhower Matrix">
                         <i class="fa-solid fa-border-all"></i>
                     </button>
+                    <button id="theme-toggle" class="nav-btn" title="Toggle dark mode">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
                 </div>
             </div>
 
@@ -33,6 +36,13 @@
                         <i class="fa-solid fa-plus"></i>
                     </button>
                 </form>
+                <div class="filter-bar">
+                    <button class="filter-btn active" data-filter="all">all</button>
+                    <button class="filter-btn" data-filter="A">A</button>
+                    <button class="filter-btn" data-filter="B">B</button>
+                    <button class="filter-btn" data-filter="C">C</button>
+                    <button class="filter-btn" data-filter="D">D</button>
+                </div>
                 <div class="todos-container">
                     <ul id="task-list"></ul>
                     <img id="note-icon" class="empty-image" width="100px" src="./images/empty.png" alt="empty">

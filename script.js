@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM refs ---
+    const themeToggle  = document.getElementById('theme-toggle');
     const taskInput    = document.getElementById('task-input');
     const addTaskBtn   = document.getElementById('add-task-btn');
     const taskList     = document.getElementById('task-list');
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- In-memory state ---
     let tasks = [];
     let activeQuadrant = null;
+    let activeFilter = 'all';
 
     const QUADRANTS = {
         A: 'Important & Urgent',
@@ -52,7 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderTodoList = () => {
         taskList.innerHTML = '';
         tasks.forEach((task, index) => {
-            taskList.appendChild(createTodoElement(task, index));
+            if (activeFilter === 'all' || task.quadrant === activeFilter) {
+                taskList.appendChild(createTodoElement(task, index));
+            }
         });
         toggleEmptyImage();
         checkAllCompleted();
@@ -70,9 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const createTodoElement = (task, index) => {
         const li = document.createElement('li');
+        const badgeHtml = task.quadrant
+            ? `<span class="quadrant-badge q-badge-${task.quadrant}">${task.quadrant}</span>`
+            : '';
         li.innerHTML = `
             <input type="checkbox" class="checkbox" ${task.completed ? 'checked' : ''}>
             <span>${task.text}</span>
+            ${badgeHtml}
             <div class="task-buttons">
                 <button class="edit-btn"><i class="fa-solid fa-pen"></i></button>
                 <button class="delete-btn"><i class="fa-solid fa-trash"></i></button>
@@ -142,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createMatrixTaskElement = (task, index) => {
         const li = document.createElement('li');
         li.className = 'matrix-task';
+        li.setAttribute('draggable', 'true');
         li.innerHTML = `
             <input type="checkbox" class="checkbox" ${task.completed ? 'checked' : ''}>
             <span>${task.text}</span>
@@ -160,7 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
             tasks[index].quadrant = null;
             saveTasks();
             renderMatrix();
+            renderTodoList();
         });
+
+        li.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', String(index));
+            e.dataTransfer.effectAllowed = 'move';
+            setTimeout(() => li.classList.add('dragging'), 0);
+        });
+        li.addEventListener('dragend', () => li.classList.remove('dragging'));
 
         return li;
     };
@@ -254,6 +271,53 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Quadrant add buttons ---
     document.querySelectorAll('.quadrant-add-btn').forEach(btn => {
         btn.addEventListener('click', () => openQuadrantModal(btn.dataset.quadrant));
+    });
+
+    // --- Filter ---
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeFilter = btn.dataset.filter;
+            renderTodoList();
+        });
+    });
+
+    // --- Drag-and-drop drop zones ---
+    document.querySelectorAll('.matrix-task-list').forEach(list => {
+        list.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            list.classList.add('drag-over');
+        });
+        list.addEventListener('dragleave', (e) => {
+            if (!list.contains(e.relatedTarget)) list.classList.remove('drag-over');
+        });
+        list.addEventListener('drop', (e) => {
+            e.preventDefault();
+            list.classList.remove('drag-over');
+            const taskIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+            const quadrant = list.id.replace('matrix-list-', '');
+            if (!isNaN(taskIndex) && tasks[taskIndex] && tasks[taskIndex].quadrant !== quadrant) {
+                tasks[taskIndex].quadrant = quadrant;
+                saveTasks();
+                renderTodoList();
+                renderMatrix();
+            }
+        });
+    });
+
+    // --- Theme toggle ---
+    const applyTheme = (dark) => {
+        document.body.classList.toggle('dark', dark);
+        themeToggle.querySelector('i').className = dark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    };
+
+    applyTheme(localStorage.getItem('theme') === 'dark');
+
+    themeToggle.addEventListener('click', () => {
+        const isDark = !document.body.classList.contains('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        applyTheme(isDark);
     });
 
     // --- Main form listeners ---

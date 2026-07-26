@@ -1,1 +1,18 @@
 CLAUDE.md
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+
+# Backend virtualenv and secrets
+backend/.venv/
+backend/.env
+
+# OS
+.DS_Store
+
+# Claude Code local settings
+.claude/settings.local.json

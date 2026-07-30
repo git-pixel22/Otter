@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { logout } from '@/lib/auth';
 
 export function AppHeader() {
   const router = useRouter();
@@ -18,11 +17,6 @@ export function AppHeader() {
     setIsDark(next);
     document.documentElement.classList.toggle('dark', next);
     localStorage.setItem('theme', next ? 'dark' : 'light');
-  }
-
-  async function handleLogout() {
-    await logout();
-    router.replace('/login');
   }
 
   const isTodos = pathname === '/todos';
@@ -80,14 +74,6 @@ export function AppHeader() {
               <path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z" fill="currentColor"/>
             </svg>
           )}
-        </NavBtn>
-
-        {/* Logout */}
-        <NavBtn active={false} onClick={handleLogout} title="Logout">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M6 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <path d="M10 5l3 3-3 3M13 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
         </NavBtn>
       </div>
     </div>

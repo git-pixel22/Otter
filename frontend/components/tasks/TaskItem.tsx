@@ -1,17 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useUpdateTask, useDeleteTask } from '@/lib/hooks';
+import { useEffect, useRef, useState } from 'react';
+import { useDeleteTask, useUpdateTask } from '@/lib/hooks';
+import { CheckIcon, PencilIcon, TrashIcon } from '@/components/ui/Icons';
 import type { Task } from '@/types';
 
-const BADGE_COLORS: Record<string, string> = {
-  A: 'rgba(180,25,70,0.6)',
-  B: 'rgba(25,110,55,0.6)',
-  C: 'rgba(180,90,10,0.6)',
-  D: 'rgba(70,70,90,0.6)',
-};
-
-export function TaskItem({ task }: { task: Task }) {
+export function TaskItem({ task, index = 0 }: { task: Task; index?: number }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -19,7 +13,7 @@ export function TaskItem({ task }: { task: Task }) {
   const deleteTask = useDeleteTask();
 
   useEffect(() => {
-    if (editing) inputRef.current?.focus();
+    if (editing) inputRef.current?.select();
   }, [editing]);
 
   function startEdit() {
@@ -40,47 +34,38 @@ export function TaskItem({ task }: { task: Task }) {
     if (e.key === 'Escape') setEditing(false);
   }
 
-  function toggleComplete() {
-    updateTask.mutate({ id: task.id, data: { completed: !task.completed } });
-  }
+  const quadrantKey = task.quadrant?.toLowerCase();
 
   return (
     <li
+      className="animate-pop group flex items-center gap-3 rounded-xl border p-2.5 pl-3 transition-colors duration-200"
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '10px 14px',
-        background: 'rgba(255,255,255,0.2)',
-        borderRadius: 10,
-        opacity: task.completed ? 0.6 : 1,
-        listStyle: 'none',
+        background: 'var(--surface-sunk)',
+        // Stagger entrance so a restored list cascades instead of snapping in.
+        animationDelay: `${Math.min(index, 10) * 35}ms`,
       }}
     >
-      {/* Checkbox */}
-      <div
-        onClick={toggleComplete}
+      {/* Complete toggle */}
+      <button
+        type="button"
+        onClick={() => updateTask.mutate({ id: task.id, data: { completed: !task.completed } })}
+        aria-label={task.completed ? `Mark "${task.text}" as not done` : `Mark "${task.text}" as done`}
+        aria-pressed={task.completed}
+        className="relative flex shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 active:scale-90"
         style={{
-          width: 20,
-          height: 20,
-          borderRadius: '50%',
-          border: task.completed ? 'none' : '2px solid rgba(255,255,255,0.7)',
-          background: task.completed ? 'rgba(255,255,255,0.85)' : 'transparent',
-          flexShrink: 0,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: 22,
+          height: 22,
+          borderColor: task.completed ? 'var(--primary)' : 'var(--border-strong)',
+          background: task.completed ? 'var(--primary)' : 'transparent',
+          color: 'var(--on-primary)',
         }}
       >
-        {task.completed && (
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        )}
-      </div>
+        {task.completed && <CheckIcon size={12} />}
+        {/* keeps the tap target at 44px without inflating the visual dot */}
+        <span className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2" />
+      </button>
 
-      {/* Text / edit input */}
+      {/* Text / edit field */}
       {editing ? (
         <input
           ref={inputRef}
@@ -88,24 +73,16 @@ export function TaskItem({ task }: { task: Task }) {
           onChange={(e) => setEditText(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={handleKeyDown}
-          style={{
-            flex: 1,
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: 'white',
-            fontSize: 14,
-          }}
+          aria-label="Edit task"
+          maxLength={200}
+          className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+          style={{ color: 'var(--text)' }}
         />
       ) : (
         <span
-          style={{
-            flex: 1,
-            color: 'rgba(255,255,255,0.85)',
-            fontSize: 14,
-            textDecoration: task.completed ? 'line-through' : 'none',
-            cursor: 'default',
-          }}
+          className="task-text min-w-0 flex-1 cursor-text text-[15px] leading-snug"
+          data-done={task.completed}
+          style={{ color: task.completed ? 'var(--text-muted)' : 'var(--text)' }}
           onDoubleClick={startEdit}
           title="Double-click to edit"
         >
@@ -116,65 +93,38 @@ export function TaskItem({ task }: { task: Task }) {
       {/* Quadrant badge */}
       {task.quadrant && (
         <span
+          className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold"
           style={{
-            padding: '2px 6px',
-            borderRadius: 5,
-            background: BADGE_COLORS[task.quadrant],
-            color: 'white',
-            fontSize: 11,
-            fontWeight: 700,
-            flexShrink: 0,
+            background: `rgba(var(--q-${quadrantKey}-tint), 0.2)`,
+            color: `var(--q-${quadrantKey}-ink)`,
           }}
+          title={`Quadrant ${task.quadrant}`}
         >
           {task.quadrant}
         </span>
       )}
 
-      {/* Edit button */}
-      <button
-        onClick={startEdit}
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 5,
-          background: 'rgba(255,255,255,0.2)',
-          border: 'none',
-          color: 'rgba(255,255,255,0.7)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-        title="Edit task"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M8.5 1.5l2 2L3 11H1v-2L8.5 1.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-
-      {/* Delete button */}
-      <button
-        onClick={() => deleteTask.mutate(task.id)}
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 5,
-          background: 'rgba(255,255,255,0.2)',
-          border: 'none',
-          color: 'rgba(255,255,255,0.7)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-        title="Delete task"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M1.5 3h9M4 3V2h4v1M5 5.5v4M7 5.5v4M2.5 3l.8 7.5h5.4L9.5 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+      {/* Actions — always reachable, emphasised on hover/focus */}
+      <div className="flex shrink-0 items-center opacity-60 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
+        <button
+          type="button"
+          onClick={startEdit}
+          className="icon-btn"
+          style={{ width: 30, height: 30 }}
+          aria-label={`Edit "${task.text}"`}
+        >
+          <PencilIcon size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={() => deleteTask.mutate(task.id)}
+          className="icon-btn hover:!text-[color:var(--accent)]"
+          style={{ width: 30, height: 30 }}
+          aria-label={`Delete "${task.text}"`}
+        >
+          <TrashIcon size={14} />
+        </button>
+      </div>
     </li>
   );
 }

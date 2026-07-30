@@ -11,10 +11,6 @@ export interface Task {
   updated_at: string;
 }
 
-export interface TaskListResponse {
-  tasks: Task[];
-}
-
 export interface TaskCreate {
   text: string;
   quadrant?: Quadrant | null;

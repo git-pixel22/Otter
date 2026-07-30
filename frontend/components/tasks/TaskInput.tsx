@@ -2,59 +2,55 @@
 
 import { useState } from 'react';
 import { useCreateTask } from '@/lib/hooks';
+import { PlusIcon } from '@/components/ui/Icons';
 import type { Quadrant } from '@/types';
 
-export function TaskInput({ quadrant }: { quadrant?: Quadrant | null }) {
+export function TaskInput({
+  quadrant,
+  autoFocus = false,
+  placeholder = 'What needs doing?',
+}: {
+  quadrant?: Quadrant | null;
+  autoFocus?: boolean;
+  placeholder?: string;
+}) {
   const [text, setText] = useState('');
   const createTask = useCreateTask();
+  const trimmed = text.trim();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = text.trim();
     if (!trimmed) return;
     createTask.mutate({ text: trimmed, quadrant: quadrant ?? null });
     setText('');
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
+    <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <label htmlFor="new-task" className="sr-only">
+        New task
+      </label>
       <input
+        id="new-task"
+        name="new-task"
         type="text"
-        placeholder="Add a new task..."
+        className="field"
+        placeholder={placeholder}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        style={{
-          flex: 1,
-          background: 'rgba(255,255,255,0.2)',
-          border: 'none',
-          borderRadius: 16,
-          padding: '10px 16px',
-          color: 'white',
-          fontSize: 14,
-          outline: 'none',
-        }}
+        autoFocus={autoFocus}
+        autoComplete="off"
+        maxLength={200}
+        style={{ minHeight: 44 }}
       />
       <button
         type="submit"
-        disabled={!text.trim() || createTask.isPending}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          background: 'white',
-          border: 'none',
-          color: '#333',
-          fontSize: 22,
-          fontWeight: 300,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: !text.trim() ? 0.5 : 1,
-          flexShrink: 0,
-        }}
+        className="btn btn-primary shrink-0"
+        disabled={!trimmed || createTask.isPending}
+        aria-label="Add task"
+        style={{ width: 44, height: 44 }}
       >
-        +
+        <PlusIcon size={20} />
       </button>
     </form>
   );

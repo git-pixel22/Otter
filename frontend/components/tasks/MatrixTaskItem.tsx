@@ -3,6 +3,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { useUpdateTask } from '@/lib/hooks';
+import { CheckIcon, CloseIcon } from '@/components/ui/Icons';
 import type { Task } from '@/types';
 
 export function MatrixTaskItem({ task }: { task: Task }) {
@@ -12,52 +13,59 @@ export function MatrixTaskItem({ task }: { task: Task }) {
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+      className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-200"
       style={{
         transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.4 : task.completed ? 0.55 : 1,
-        cursor: isDragging ? 'grabbing' : 'grab',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 10px',
-        background: 'rgba(255,255,255,0.12)',
-        borderRadius: 8,
+        opacity: isDragging ? 0.35 : 1,
+        background: 'var(--surface-raised)',
+        // While dragging, this element must sit above sibling quadrants.
+        zIndex: isDragging ? 20 : undefined,
+        position: 'relative',
       }}
     >
-      <div
-        onClick={(e) => { e.stopPropagation(); updateTask.mutate({ id: task.id, data: { completed: !task.completed } }); }}
+      <button
+        type="button"
+        onClick={() => updateTask.mutate({ id: task.id, data: { completed: !task.completed } })}
+        aria-label={task.completed ? `Mark "${task.text}" as not done` : `Mark "${task.text}" as done`}
+        aria-pressed={task.completed}
+        className="flex shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 active:scale-90"
         style={{
-          width: 14,
-          height: 14,
-          borderRadius: '50%',
-          border: task.completed ? 'none' : '1.5px solid rgba(255,255,255,0.6)',
-          background: task.completed ? 'rgba(255,255,255,0.8)' : 'transparent',
-          flexShrink: 0,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: 16,
+          height: 16,
+          borderColor: task.completed ? 'var(--primary)' : 'var(--border-strong)',
+          background: task.completed ? 'var(--primary)' : 'transparent',
+          color: 'var(--on-primary)',
         }}
       >
-        {task.completed && (
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-            <path d="M1 4l2 2 4-4" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        )}
-      </div>
+        {task.completed && <CheckIcon size={9} />}
+      </button>
 
-      <span style={{ flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: 12, textDecoration: task.completed ? 'line-through' : 'none' }}>
+      {/* The text doubles as the drag handle, so the buttons stay tappable.
+          dnd-kit's attributes make this keyboard-draggable too. */}
+      <span
+        {...listeners}
+        {...attributes}
+        className="task-text line-clamp-2 min-w-0 flex-1 text-xs leading-snug"
+        data-done={task.completed}
+        style={{
+          color: task.completed ? 'var(--text-muted)' : 'var(--text)',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          touchAction: 'none',
+        }}
+        title={task.text}
+      >
         {task.text}
       </span>
 
       <button
-        onClick={(e) => { e.stopPropagation(); updateTask.mutate({ id: task.id, data: { quadrant: null } }); }}
-        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 0, fontSize: 11, lineHeight: 1 }}
-        title="Unassign from quadrant"
+        type="button"
+        onClick={() => updateTask.mutate({ id: task.id, data: { quadrant: null } })}
+        className="icon-btn shrink-0"
+        style={{ width: 22, height: 22 }}
+        aria-label={`Remove "${task.text}" from this quadrant`}
+        title="Remove from quadrant"
       >
-        ✕
+        <CloseIcon size={12} />
       </button>
     </div>
   );

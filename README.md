@@ -8,83 +8,98 @@ A todo app, but also a learning project; a place to make real decisions, underst
 
 ## What it is
 
-A single-page task manager built on **vanilla HTML, CSS, and JavaScript**, no framework, no build step, no dependencies beyond a CDN font and icon pack. You open `index.html` in a browser and it works.
+A task manager built with **Next.js, TypeScript, and Tailwind**, running entirely in the browser. There is no account to create and no server to talk to. Your tasks are saved in `localStorage` on the device you are using.
 
 It currently has:
-- A **todo list** with add, edit, delete, and checkbox completion
+- A **landing page** explaining the app and the Eisenhower idea, with a single call to action
+- A **todo list** with add, edit, delete, checkbox completion, and a progress bar
 - An **Eisenhower Matrix** view, four quadrants (Important/Urgent, Important/Not Urgent, Urgent/Not Important, Neither) to prioritize tasks
-- **Drag-and-drop** between quadrants
+- **Drag-and-drop** between quadrants, with a keyboard alternative for anyone not using a mouse
 - **Priority badges** on todo items showing which quadrant a task belongs to
-- **Filter by quadrant** in the todo list view
-- **Dark mode** toggle with preference saved to `localStorage`
-- **Confetti** when all tasks are completed (obviously essential)
+- **Filter by quadrant** in the todo list view, with live counts
+- **Dark mode**, following your system preference until you choose otherwise
+- **Bubbles** when all tasks are completed (obviously essential)
 
 ---
 
 ## Architecture
 
-### Why no framework?
+### Why a framework now
 
-The deliberate constraint here is zero build tooling. No React, no Vue, no Vite, no npm. Everything runs as static files. The reasons:
+The first version of this app was three static files with no build step, and that was the right call at the time. It stopped being the right call once there were two views sharing state, a drag-and-drop surface, and a component that needed to exist in both places. The vanilla version was re-rendering entire lists by hand and passing array indices around as identity, which broke as soon as filtering entered the picture.
 
-1. **Forces fundamentals.** Working without abstractions makes DOM manipulation, event delegation, and state management visible. You can't hide behind `useState` when there's no React.
-2. **Fast feedback loop.** Save a file, refresh. No compilation, no HMR, no terminal to watch.
-3. **Honest complexity.** At this scale, a framework would be overkill. The app is three files. Adding a build chain would mean more tooling than product.
+So the stack is now Next.js with TypeScript, Tailwind v4 for styling, TanStack Query for state, and dnd-kit for dragging. The original `index.html`, `script.js`, and `style.css` are still in the repo as a reference. They are no longer the running app.
 
-This will change as the app grows. A proper frontend framework will make sense once the component count justifies it.
+### Why localStorage, and why the backend was deleted
 
-### State management
+The previous version of this README listed "backend + persistence" and "user accounts" as the plan. I built both: FastAPI, SQLAlchemy, Alembic migrations, Postgres on Aiven, JWT auth with refresh tokens. It worked.
 
-There's no state library. All app state lives in a single `tasks` array in memory (declared in `script.js`). Every mutation:
-1. Updates the array
-2. Calls `saveTasks()`, serializes to `localStorage`
-3. Re-renders the affected view
+Then I deleted it.
 
-`localStorage` (key: `myTasks`) is the source of truth across page loads. On boot, `loadTasks()` deserializes it back into the array and renders.
+The honest reasoning: I was about to start paying for a database and a domain for an app with one confirmed user, which is me. The managed Postgres instance had already been torn down for inactivity by the time I came back to it, which was a fairly loud hint. Multi-device sync is a real feature, but it is a feature worth building when people are actually asking for it, not before.
 
-This is simple and sufficient right now. As data complexity grows, user accounts, server sync, optimistic updates, this will need to be replaced with something more structured.
+So tasks live in `localStorage` under the key `myTasks`, the same key the vanilla version used. `lib/hooks.ts` is the only place that touches storage, and it migrates older entries that are missing `id`, `position`, or timestamps, so data written by the original prototype still loads today.
+
+The tradeoff is stated plainly on the landing page rather than hidden: your tasks stay on this device, and they will not follow you to your phone. If that stops being acceptable, the backend is in the git history (removed in `c5bc20b`) and is a reasonable starting point.
+
+### Design system
+
+Styling used to be inline style objects scattered across components, which meant every color was a magic number and dark mode was a guess. There is now a small design system at the top of `frontend/app/globals.css`, built on CSS custom properties and exposed to Tailwind through `@theme inline`, so utilities like `bg-surface` and `text-muted` resolve to real tokens.
+
+The visual direction is "still water": a calm teal base, with warm amber reserved exclusively for primary actions so there is never a question about what the main button on a screen is. The background is a pair of slowly drifting gradients over a tiled SVG contour pattern.
+
+Two things this cleaned up:
+
+1. **CSS weight.** `globals.css` was 184KB, because two background images had been base64 inlined directly into render blocking CSS. It is now roughly 12KB, and the background pattern is an inline SVG of about 350 bytes.
+2. **Icons.** Emoji were doing structural work in the UI (a 🦦 for empty states, a ✕ for dismiss). Emoji render differently on every platform and cannot be styled, so they are now a proper SVG icon set with a consistent stroke width, including a hand-built otter mark.
+
+Type is Fraunces for headings and Inter for interface text. The previous font, Comfortaa, is a display face, and it was being asked to render 11px body copy in the task list, which it is not built for.
+
+### Accessibility
+
+This is the part I previously would have skipped, so it is worth writing down. The app now checks out on all of the following, verified in a real browser rather than by eye:
+
+- Text meets WCAG AA contrast in **both** light and dark themes. This needed measuring rather than guessing, because almost every surface is translucent, so the contrast that matters is the composited result, not the color written in the stylesheet.
+- Every control has an accessible name, and touch targets are at least 44px even where the icon is smaller.
+- `prefers-reduced-motion` is respected everywhere, including the ambient background.
+- Scroll revealed content has a `<noscript>` fallback, since otherwise the entire page below the fold would be invisible with JavaScript disabled.
+- Matrix tasks can be moved with the keyboard, not only by dragging.
 
 ### Theme system
 
-Dark mode is implemented via a `body.dark` CSS class swap rather than CSS custom properties or a separate stylesheet. The tradeoff:
+Dark mode is a `.dark` class on `<html>`, driven by CSS custom properties rather than the property by property overrides the vanilla version used. A small script runs before hydration to prevent a flash of the wrong theme.
 
-- **Simpler to implement:** one class toggle, two overridden properties (`background-color`, `background-image`)
-- **Less scalable:** if the number of themed properties grows, custom properties (`--color-bg`, etc.) would be the right refactor
-
-The background is a topography SVG pattern from [heropatterns.com](https://heropatterns.com) (MIT licensed), inlined as a `data:` URI; no external image request, no licensing risk. This replaced an original background photo that had unclear licensing.
-
-User's theme preference is persisted to `localStorage` under the key `theme`.
+The behavior is: an explicit choice saved in `localStorage` under `theme` always wins; otherwise the app follows your operating system preference.
 
 ### Eisenhower Matrix
 
-The quadrant system stores a `quadrant` field (`'A' | 'B' | 'C' | 'D' | null`) on each task object. Tasks without a quadrant appear only in the todo list. Tasks with one appear in both views.
+Each task stores a `quadrant` field (`'A' | 'B' | 'C' | 'D' | null`). Tasks without a quadrant appear only in the todo list. Tasks with one appear in both views.
 
-The modal for assigning tasks to quadrants surfaces only unassigned tasks; once a task is in a quadrant, it must be explicitly removed (via the ✕ button) before it can be reassigned. This was a deliberate UX choice to avoid accidental re-categorization.
+The four quadrant colors are fixed identity colors and do not change. They are dark by design, which makes them illegible against a dark background, so each one has a derived `ink` variant for text and a `tint` variant for fills and borders. Those derived values differ between themes; the base hues never do.
+
+The matrix view labels its own axes (urgent across, important down) because a 2x2 grid of colored boxes does not explain itself, and the whole point of the tool is the question it forces you to answer.
 
 ---
 
 ## Running it
 
 ```bash
-# Option 1: just open the file
-open index.html
-
-# Option 2: serve it locally
-python3 -m http.server 8080
-# then visit http://localhost:8080
+cd frontend
+npm install
+npm run build && npm run start
+# then visit http://localhost:3000
 ```
 
-No install step. No build step.
+`npm run dev` works too, but the dev server is noticeably memory hungry, so a production build is the better default for just using the app.
 
 ---
 
 ## What comes next
 
-This is version 0 of something that will grow. Planned evolution:
+Deliberately open. The next thing gets built when there is evidence it is needed, not because it was on a roadmap written months earlier. Candidates:
 
-- **Proper frontend:** likely a component-based framework once the UI complexity justifies it
-- **Backend + persistence:** tasks living in a database, not just `localStorage`
-- **User accounts:** so the app is actually useful across devices
-- **API layer:** REST or GraphQL, TBD based on what makes sense at the time
+- **Sync**, if and when more than one person is using this on more than one device
+- **Task ordering** within a quadrant, which drag-and-drop already implies but does not yet persist
+- **Recurring tasks**, which is the first feature I have actually wanted while using it
 
-Each of these shifts will be documented here with the reasoning behind the choices made.
+Each of these shifts will be documented here with the reasoning behind the choices made, including the ones that turn out to be wrong.
